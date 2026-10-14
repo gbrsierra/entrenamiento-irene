@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>IronUpper | Entrenamiento Tren Superior con Mancuernas en Casa</title>
+  <meta name="description" content="App de entrenamiento del tren superior en casa con mancuernas. Ilustraciones animadas paso a paso, mapa anatómico muscular interactivo y temporizador de series.">
+  <meta name="theme-color" content="#070a11">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Estilos CSS -->
+  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/animations.css?v=8">
+  <link rel="stylesheet" href="css/muscle-map.css?v=8">
+</head>
+<body>
+
+  <!-- Contenedor Principal de la Aplicación -->
+  <div id="app">
+
+    <!-- Encabezado Superior Sticky -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon" aria-hidden="true">
+          <!-- Icono Mancuerna SVG -->
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#050811" stroke-width="2.5" stroke-linecap="round">
+            <line x1="6" y1="5" x2="6" y2="19" />
+            <line x1="18" y1="5" x2="18" y2="19" />
+            <line x1="2" y1="8" x2="6" y2="8" />
+            <line x1="2" y1="16" x2="6" y2="16" />
+            <line x1="18" y1="8" x2="22" y2="8" />
+            <line x1="18" y1="16" x2="22" y2="16" />
+            <line x1="6" y1="12" x2="18" y2="12" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">IronUpper</h1>
+        </div>
+        <span class="brand-tag">Mancuernas</span>
+      </div>
+
+      <div class="header-actions">
+        <div class="streak-pill" id="global-streak-pill" title="Racha de entrenamientos">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M12 2c-.3 1.8-.7 3.2-1.9 4.6C8.8 8.1 7 9.8 7 13c0 3.3 2.7 6 6 6s6-2.7 6-6c0-3.8-2.4-6.4-4.5-8.5C13.5 3.5 12.8 2.8 12 2z"/>
+          </svg>
+          <span id="streak-counter-text">0 Días</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ============================================== -->
+    <!-- VISTA 1: RUTINAS / PLANES DE ENTRENAMIENTO -->
+    <!-- ============================================== -->
+    <main class="app-view is-active" id="view-routines">
+      <div class="view-hero">
+        <span class="hero-tag">Planes en Casa</span>
+        <h2 class="hero-title">Rutinas de Ejercicios para Irene</h2>
+        <p class="hero-desc">Selecciona una rutina adaptada a tus objetivos. Incluye seguimiento de series, descansos con sonido y cargas.</p>
+      </div>
+
+      <div class="routines-grid" id="routines-list-container">
+        <!-- Renderizado dinámico desde JS -->
+      </div>
+    </main>
+
+    <!-- ============================================== -->
+    <!-- VISTA 2: BIBLIOTECA DE EJERCICIOS Y ANIMACIONES -->
+    <!-- ============================================== -->
+    <section class="app-view" id="view-exercises">
+      <div class="view-hero">
+        <span class="hero-tag">Catálogo Guiado</span>
+        <h2 class="hero-title">Ejercicios Ilustrados</h2>
+        <p class="hero-desc">Animaciones continuas de técnica, trayectoria de mancuernas y anatomía muscular implicada.</p>
+      </div>
+
+      <!-- Filtros y Búsqueda Rápida -->
+      <div class="filter-bar">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" class="search-input" id="exercise-search-input" placeholder="Buscar ejercicio, músculo..." />
+        </div>
+
+        <div class="muscle-filter-scroll" id="muscle-chips-bar">
+          <button class="chip-btn active" data-category="todos">Todos</button>
+          <button class="chip-btn" data-category="pecho">Pecho</button>
+          <button class="chip-btn" data-category="espalda">Espalda</button>
+          <button class="chip-btn" data-category="hombros">Hombros</button>
+          <button class="chip-btn" data-category="brazos">Brazos (Bíceps/Tríceps)</button>
+          <button class="chip-btn" data-category="core">Core</button>
+        </div>
+      </div>
+
+      <!-- Grilla de Ejercicios -->
+      <div class="exercises-grid" id="exercises-list-container">
+        <!-- Renderizado dinámico desde JS -->
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VISTA 3: EXPLORADOR ANATÓMICO MUSCULAR -->
+    <!-- ============================================== -->
+    <section class="app-view" id="view-anatomy">
+      <div class="view-hero">
+        <span class="hero-tag">Biomecánica</span>
+        <h2 class="hero-title">Mapa Muscular Interactivo</h2>
+        <p class="hero-desc">Toca o selecciona un músculo en la silueta para descubrir qué ejercicios con mancuernas lo activan.</p>
+      </div>
+
+      <!-- Selector de Grupo Muscular Rápido -->
+      <div class="filter-bar">
+        <div class="muscle-filter-scroll" id="anatomy-muscle-selector">
+          <!-- Renderizado dinámico -->
+        </div>
+      </div>
+
+      <!-- Visualizador Dual SVG Frontal y Posterior -->
+      <div id="anatomy-interactive-display">
+        <!-- Inyectado desde JS -->
+      </div>
+
+      <!-- Tarjeta de Información del Músculo Seleccionado -->
+      <div class="player-card" id="anatomy-info-panel" style="margin-top: 16px;">
+        <h3 id="anatomy-selected-title" style="font-family: var(--font-display); font-size: 1.15rem; color: var(--neon-cyan); margin-bottom: 6px;">
+          Selecciona un grupo muscular
+        </h3>
+        <p id="anatomy-selected-desc" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 12px;">
+          Podrás ver el enfoque biomecánico y los mejores ejercicios con mancuernas para entrenarlo en casa.
+        </p>
+        <div id="anatomy-related-exercises" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Lista de ejercicios relacionados -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================== -->
+    <!-- VISTA 4: HISTORIAL Y ESTADÍSTICAS -->
+    <!-- ============================================== -->
+    <section class="app-view" id="view-progress">
+      <div class="view-hero">
+        <span class="hero-tag">Seguimiento</span>
+        <h2 class="hero-title">Tu Progreso</h2>
+        <p class="hero-desc">Registro histórico de entrenamientos completados, volumen acumulado y constancia.</p>
+      </div>
+
+      <!-- Métricas Clave -->
+      <div class="stats-hero-grid">
+        <div class="stats-metric-card">
+          <span class="metric-number" id="metric-sessions">0</span>
+          <span class="metric-label">Sesiones Totales</span>
+        </div>
+        <div class="stats-metric-card">
+          <span class="metric-number" id="metric-volume">0 kg</span>
+          <span class="metric-label">Volumen Acumulado</span>
+        </div>
+        <div class="stats-metric-card">
+          <span class="metric-number" id="metric-minutes">0</span>
+          <span class="metric-label">Minutos Entrenados</span>
+        </div>
+        <div class="stats-metric-card">
+          <span class="metric-number" id="metric-streak" style="color: var(--neon-orange);">0 d</span>
+          <span class="metric-label">Racha Actual</span>
+        </div>
+      </div>
+
+      <!-- Lista Histórica de Sesiones -->
+      <h3 style="font-family: var(--font-display); font-size: 1.15rem; margin-bottom: 12px;">Historial de Entrenamientos</h3>
+      <div class="history-list" id="history-list-container">
+        <!-- Renderizado dinámico -->
+      </div>
+    </section>
+
+  </div><!-- Fin #app -->
+
+  <!-- ============================================== -->
+  <!-- BARRA DE NAVEGACIÓN INFERIOR (MÓVIL / TABLET) -->
+  <!-- ============================================== -->
+  <nav class="bottom-nav">
+    <div class="nav-container">
+      <button type="button" class="nav-item active" data-view="view-routines" aria-label="Ir a Rutinas">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="16" rx="3" />
+          <line x1="7" y1="9" x2="17" y2="9" />
+          <line x1="7" y1="13" x2="13" y2="13" />
+        </svg>
+        <span>Rutinas</span>
+      </button>
+
+      <button type="button" class="nav-item" data-view="view-exercises" aria-label="Ir a Ejercicios">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="10 8 16 12 10 16 10 8" />
+        </svg>
+        <span>Ejercicios</span>
+      </button>
+
+      <button type="button" class="nav-item" data-view="view-anatomy" aria-label="Ir a Músculos">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+        <span>Músculos</span>
+      </button>
+
+      <button type="button" class="nav-item" data-view="view-progress" aria-label="Ir a Progreso">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+        <span>Progreso</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ============================================== -->
+  <!-- MODAL BOTTOM SHEET: DETALLE DE EJERCICIO -->
+  <!-- ============================================== -->
+  <div class="exercise-detail-modal" id="exercise-detail-modal" role="dialog" aria-modal="true">
+    <div class="modal-content-sheet">
+      <div class="modal-sheet-handle" id="modal-drag-handle"></div>
+
+      <div class="modal-sheet-header">
+        <div class="modal-title-box">
+          <h3 class="modal-sheet-title" id="modal-ex-title">Nombre del Ejercicio</h3>
+          <span class="modal-sheet-sub" id="modal-ex-subtitle">Subtítulo / Músculos</span>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-exercise-modal" aria-label="Cerrar modal">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal-sheet-body" id="modal-ex-content">
+        <!-- Renderizado dinámico -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Principal de Entrada -->
+  <script type="module" src="js/app.js?v=8"></script>
+</body>
+</html>

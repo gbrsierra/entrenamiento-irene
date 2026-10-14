@@ -113,6 +113,8 @@ export class WorkoutPlayer {
     this.currentSetIndex = 0;
     this.startTime = Date.now();
     this.isResting = false;
+    this._activeVoiceSetKey = null;
+    this._resetScrollOnNextUpdate = true;
     this.stopExerciseTimer();
 
     // Inicializar matriz de series por ejercicio
@@ -225,6 +227,13 @@ export class WorkoutPlayer {
   updateUI() {
     if (!this.container || !this.routine) return;
     const currentItem = this.exerciseSetsData[this.currentExerciseIndex];
+    if (!currentItem) return;
+
+    // Guardar posición de scroll del contenedor principal antes de re-renderizar
+    const scrollEl = this.container.querySelector('.player-main-scroll');
+    const savedScrollTop = this._resetScrollOnNextUpdate ? 0 : (scrollEl ? scrollEl.scrollTop : 0);
+    this._resetScrollOnNextUpdate = false;
+
     const { exercise, sets, restSeconds, isTimer } = currentItem;
     const isBike = this.isBikeExercise(currentItem);
     const isInterval = currentItem.exerciseId === 'bicicleta-estatica-intervalos' || (exercise && exercise.isInterval);
@@ -237,10 +246,12 @@ export class WorkoutPlayer {
     const totalExercises = this.exerciseSetsData.length;
     const currentProgressPercent = Math.round(((this.currentExerciseIndex) / totalExercises) * 100);
 
-    // Sincronizar el contador de voz con la serie actual (solo si no es cronómetro ni bici)
+    // Sincronizar el contador de voz solo cuando realmente cambie la serie o ejercicio
     if (this.voiceCounter && !this.isResting && !isTimer && !isBike) {
       const currentSet = sets[this.currentSetIndex];
-      if (currentSet) {
+      const setKey = `${this.currentExerciseIndex}-${this.currentSetIndex}`;
+      if (currentSet && this._activeVoiceSetKey !== setKey) {
+        this._activeVoiceSetKey = setKey;
         const label = 'Serie ' + (this.currentSetIndex + 1) + ' de ' + sets.length;
         this.voiceCounter.startNewSet(currentSet.reps, label);
       }
@@ -691,6 +702,12 @@ export class WorkoutPlayer {
 
     this.bindEvents();
     this._injectMicButton();
+
+    // Restaurar inmediatamente el scroll para evitar que salte al inicio
+    const newScrollEl = this.container.querySelector('.player-main-scroll');
+    if (newScrollEl && savedScrollTop > 0) {
+      newScrollEl.scrollTop = savedScrollTop;
+    }
   }
 
   /** Inyecta el botón de micrófono en el slot reservado del HTML */
@@ -730,6 +747,60 @@ export class WorkoutPlayer {
     return 'Fin del entrenamiento';
   }
 
+  /** Actualiza los textos de los botones principales y displays de la serie activa in-place */
+  _updateCurrentSetActionLabels() {
+    const currentItem = this.exerciseSetsData[this.currentExerciseIndex];
+    if (!currentItem) return;
+    const { sets, isTimer } = currentItem;
+    const currentSet = sets[this.currentSetIndex];
+
+    // Actualizar texto del botón principal de completar serie
+    const btnCompleteCurrent = document.getElementById('btn-complete-current-set');
+    if (btnCompleteCurrent) {
+      const btnText = btnCompleteCurrent.querySelector('.btn-text');
+      if (btnText) {
+        btnText.textContent = (this.currentSetIndex < sets.length && currentSet)
+          ? `Completar Serie ${this.currentSetIndex + 1} (${currentSet.reps}${isTimer ? 's' : ' reps'})`
+          : 'Todas las series completadas';
+      }
+    }
+
+    // Si es temporizador regresivo isométrico (Plancha), actualizar el display y el botón si no está corriendo
+    if (isTimer && currentSet) {
+      const valEl = document.getElementById('ex-timer-val');
+      if (valEl && !this.isExerciseTimerRunning) {
+        valEl.textContent = this.formatTime(currentSet.reps);
+      }
+      const btnToggle = document.getElementById('btn-toggle-ex-timer');
+      if (btnToggle && !this.isExerciseTimerRunning) {
+        const span = btnToggle.querySelector('span');
+        if (span) span.textContent = `Iniciar Cuenta Atrás (${currentSet.reps}s)`;
+      }
+      const setTag = this.container.querySelector('.countdown-set-tag');
+      if (setTag) {
+        setTag.textContent = `Serie ${Math.min(this.currentSetIndex + 1, sets.length)} de ${sets.length}`;
+      }
+    }
+
+    // Actualizar objetivo en contador de voz sin resetear conteo actual
+    if (this.voiceCounter && currentSet) {
+      this.voiceCounter.targetReps = currentSet.reps;
+      this.voiceCounter.setLabel = `Serie ${this.currentSetIndex + 1} de ${sets.length}`;
+    }
+  }
+
+  /** Actualiza el resaltado visual de la serie activa en la tabla sin tocar el DOM */
+  _updateCurrentSetHighlight() {
+    this.container.querySelectorAll('.sets-row[data-set-index]').forEach(row => {
+      const idx = parseInt(row.dataset.setIndex, 10);
+      if (idx === this.currentSetIndex) {
+        row.classList.add('is-current');
+      } else {
+        row.classList.remove('is-current');
+      }
+    });
+  }
+
   bindEvents() {
     // Botón cancelar / salir
     const btnCancel = document.getElementById('btn-player-cancel');
@@ -751,7 +822,6 @@ export class WorkoutPlayer {
     });
 
     // Pestañas Animación vs Músculos
-
     const tabBtns = this.container.querySelectorAll('.visual-tab-btn');
     const animContainer = this.container.querySelector('.exercise-anim-container');
     const muscleBox = document.getElementById('player-muscle-box');
@@ -770,10 +840,11 @@ export class WorkoutPlayer {
       };
     });
 
-    // Inputs y Steppers de Peso / Reps
+    // Inputs y Steppers de Peso / Reps (Modificación in-place sin salto de pantalla)
     const currentItem = this.exerciseSetsData[this.currentExerciseIndex];
     this.container.querySelectorAll('.btn-step').forEach(btn => {
-      btn.onclick = () => {
+      btn.onclick = (e) => {
+        e.preventDefault();
         const action = btn.dataset.action;
         const index = parseInt(btn.dataset.index, 10);
         const set = currentItem.sets[index];
@@ -784,21 +855,64 @@ export class WorkoutPlayer {
         if (action === 'inc-reps') set.reps = Math.min(100, set.reps + 1);
         if (action === 'dec-reps') set.reps = Math.max(1, set.reps - 1);
 
-        this.updateUI();
+        // Actualizar visualmente el input de esa fila directamente sin recargar todo el DOM
+        const row = btn.closest('.sets-row');
+        if (row) {
+          if (action === 'inc-weight' || action === 'dec-weight') {
+            const weightInput = row.querySelector('.weight-input');
+            if (weightInput) weightInput.value = set.weight;
+          }
+          if (action === 'inc-reps' || action === 'dec-reps') {
+            const repsInput = row.querySelector('.reps-input');
+            if (repsInput) repsInput.value = set.reps;
+          }
+        }
+
+        // Si se modificó la serie en curso, actualizar displays
+        this._updateCurrentSetActionLabels();
       };
     });
 
     this.container.querySelectorAll('.set-input').forEach(input => {
-      input.onchange = () => {
+      const handleValChange = () => {
         const index = parseInt(input.dataset.index, 10);
         const set = currentItem.sets[index];
         if (!set) return;
         if (input.classList.contains('weight-input')) {
-          set.weight = parseFloat(input.value) || 0;
+          set.weight = Math.max(0, parseFloat(input.value) || 0);
         } else if (input.classList.contains('reps-input')) {
-          set.reps = parseInt(input.value, 10) || 0;
+          set.reps = Math.max(1, parseInt(input.value, 10) || 1);
         }
+        this._updateCurrentSetActionLabels();
       };
+      input.oninput = handleValChange;
+      input.onchange = handleValChange;
+    });
+
+    // Permitir seleccionar serie activa pulsando en el indicador numérico sin saltos
+    this.container.querySelectorAll('.sets-row[data-set-index]').forEach(row => {
+      const numCol = row.querySelector('.col-num');
+      if (numCol) {
+        numCol.style.cursor = 'pointer';
+        numCol.title = 'Seleccionar serie';
+        numCol.onclick = (e) => {
+          e.stopPropagation();
+          const idx = parseInt(row.dataset.setIndex, 10);
+          if (!isNaN(idx) && idx !== this.currentSetIndex) {
+            this.currentSetIndex = idx;
+            this._activeVoiceSetKey = null;
+            this._updateCurrentSetHighlight();
+            this._updateCurrentSetActionLabels();
+            if (this.voiceCounter && !this.isResting && !currentItem.isTimer && !this.isBikeExercise(currentItem)) {
+              const currentSet = currentItem.sets[this.currentSetIndex];
+              if (currentSet) {
+                const label = 'Serie ' + (this.currentSetIndex + 1) + ' de ' + currentItem.sets.length;
+                this.voiceCounter.startNewSet(currentSet.reps, label);
+              }
+            }
+          }
+        };
+      }
     });
 
     // Botón completar serie individual
@@ -924,7 +1038,8 @@ export class WorkoutPlayer {
 
       // Stepper de minutos (+/-)
       this.container.querySelectorAll('.btn-bike-step').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+          e.preventDefault();
           const step = parseInt(btn.dataset.step, 10);
           if (!bikeSet) return;
           const currentMins = Math.max(1, Math.round((bikeSet.reps || 900) / 60));
@@ -932,7 +1047,17 @@ export class WorkoutPlayer {
           bikeSet.reps = newMins * 60;
           this.stopExerciseTimer();
           this.exerciseTimerSecondsRemaining = bikeSet.reps;
-          this.updateUI();
+
+          const minsInput = document.getElementById('bike-mins-input');
+          if (minsInput) minsInput.value = newMins;
+          const valEl = document.getElementById('bike-timer-val');
+          if (valEl) valEl.textContent = this.formatTime(bikeSet.reps);
+          const btnToggle = document.getElementById('btn-bike-toggle');
+          if (btnToggle) {
+            btnToggle.classList.remove('is-running');
+            const span = btnToggle.querySelector('span');
+            if (span) span.textContent = 'Iniciar Sesión';
+          }
         };
       });
 
@@ -943,24 +1068,42 @@ export class WorkoutPlayer {
           let val = parseInt(minsInput.value, 10);
           if (isNaN(val) || val < 1) val = 1;
           if (val > 180) val = 180;
+          minsInput.value = val;
           if (bikeSet) {
             bikeSet.reps = val * 60;
             this.stopExerciseTimer();
             this.exerciseTimerSecondsRemaining = bikeSet.reps;
-            this.updateUI();
+            const valEl = document.getElementById('bike-timer-val');
+            if (valEl) valEl.textContent = this.formatTime(bikeSet.reps);
+            const btnToggle = document.getElementById('btn-bike-toggle');
+            if (btnToggle) {
+              btnToggle.classList.remove('is-running');
+              const span = btnToggle.querySelector('span');
+              if (span) span.textContent = 'Iniciar Sesión';
+            }
           }
         };
       }
 
       // Píldoras de duraciones rápidas predefinidas (5m, 10m, 15m, 20m, 30m, 45m, 60m)
       this.container.querySelectorAll('.btn-bike-preset').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+          e.preventDefault();
           const mins = parseInt(btn.dataset.mins, 10);
           if (bikeSet && mins) {
             bikeSet.reps = mins * 60;
             this.stopExerciseTimer();
             this.exerciseTimerSecondsRemaining = bikeSet.reps;
-            this.updateUI();
+            const minsInput = document.getElementById('bike-mins-input');
+            if (minsInput) minsInput.value = mins;
+            const valEl = document.getElementById('bike-timer-val');
+            if (valEl) valEl.textContent = this.formatTime(bikeSet.reps);
+            const btnToggle = document.getElementById('btn-bike-toggle');
+            if (btnToggle) {
+              btnToggle.classList.remove('is-running');
+              const span = btnToggle.querySelector('span');
+              if (span) span.textContent = 'Iniciar Sesión';
+            }
           }
         };
       });
@@ -981,7 +1124,22 @@ export class WorkoutPlayer {
           this.stopExerciseTimer();
           const target = bikeSet ? bikeSet.reps : 900;
           this.exerciseTimerSecondsRemaining = target;
-          this.updateUI();
+          const valEl = document.getElementById('bike-timer-val');
+          if (valEl) valEl.textContent = this.formatTime(target);
+          const statusEl = document.getElementById('bike-timer-status');
+          if (statusEl) statusEl.textContent = 'Pulsa para iniciar el pedaleo';
+          const btnToggle = document.getElementById('btn-bike-toggle');
+          if (btnToggle) {
+            btnToggle.classList.remove('is-running');
+            btnToggle.innerHTML = `
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span>Iniciar Sesión</span>
+            `;
+          }
+          const progressFill = document.getElementById('bike-progress-fill');
+          if (progressFill) progressFill.style.width = '0%';
         };
       }
 
@@ -998,19 +1156,26 @@ export class WorkoutPlayer {
         };
       }
     } else {
-      // Eventos del temporizador regresivo de ejercicio isométrico (Plancha)
+      // Eventos del temporizador regresivo de ejercicio isométrico (Plancha) - In-place sin saltos
       this.container.querySelectorAll('.btn-time-preset').forEach(btn => {
-        btn.onclick = () => {
+        btn.onclick = (e) => {
+          e.preventDefault();
           const sec = parseInt(btn.dataset.sec, 10);
           const set = currentItem.sets[this.currentSetIndex];
-          if (set) {
+          if (set && sec) {
             set.reps = sec;
             this.exerciseTimerSecondsRemaining = sec;
             const valEl = document.getElementById('ex-timer-val');
             if (valEl && !this.isExerciseTimerRunning) {
               valEl.textContent = this.formatTime(sec);
             }
-            this.updateUI();
+            // Actualizar la fila en la tabla de series
+            const activeRow = this.container.querySelector(`.sets-row[data-set-index="${this.currentSetIndex}"]`);
+            if (activeRow) {
+              const repsInp = activeRow.querySelector('.reps-input');
+              if (repsInp) repsInp.value = sec;
+            }
+            this._updateCurrentSetActionLabels();
           }
         };
       });
@@ -1034,7 +1199,16 @@ export class WorkoutPlayer {
           if (valEl) valEl.textContent = this.formatTime(sec);
           const statusEl = document.getElementById('ex-timer-status');
           if (statusEl) statusEl.textContent = 'Pulsa para iniciar la cuenta atrás';
-          this.updateUI();
+          const btnToggle = document.getElementById('btn-toggle-ex-timer');
+          if (btnToggle) {
+            btnToggle.classList.remove('is-running');
+            btnToggle.innerHTML = `
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span>Iniciar Cuenta Atrás (${sec}s)</span>
+            `;
+          }
         };
       }
     }
@@ -1192,7 +1366,11 @@ export class WorkoutPlayer {
     set.completed = !set.completed;
     if (set.completed) {
       this.currentSetIndex = Math.min(currentItem.sets.length, index + 1);
+      this._activeVoiceSetKey = null;
       this.startRestTimer(currentItem.restSeconds);
+    } else {
+      this.currentSetIndex = index;
+      this._activeVoiceSetKey = null;
     }
     this.updateUI();
   }
@@ -1203,6 +1381,7 @@ export class WorkoutPlayer {
     if (set) {
       set.completed = true;
       this.currentSetIndex = index + 1;
+      this._activeVoiceSetKey = null;
       this.startRestTimer(currentItem.restSeconds);
     }
   }
@@ -1211,6 +1390,8 @@ export class WorkoutPlayer {
     this.stopRestTimer();
     this.stopExerciseTimer();
     this.bikeMode = null;
+    this._activeVoiceSetKey = null;
+    this._resetScrollOnNextUpdate = true;
     this.currentExerciseIndex = index;
     // Buscar la primera serie incompleta
     const currentItem = this.exerciseSetsData[this.currentExerciseIndex];

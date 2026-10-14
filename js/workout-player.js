@@ -7,7 +7,6 @@ import { VoiceRepCounter } from './voice-rep-counter.js?v=8';
 
 
 class AudioFeedback {
-  static ctx = null;
 
   static init() {
     if (!this.ctx) {
@@ -66,9 +65,11 @@ class AudioFeedback {
     }
   }
 }
+AudioFeedback.ctx = null; // Safari compat: static class fields not supported in older Safari
 
 export class WorkoutPlayer {
   constructor({ onFinish, onExit } = {}) {
+
     this.onFinish = onFinish || (() => {});
     this.onExit = onExit || (() => {});
 

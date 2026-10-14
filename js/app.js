@@ -181,7 +181,7 @@ class App {
       const matchesSearch = !this.searchQuery || 
         ex.name.toLowerCase().includes(this.searchQuery) ||
         ex.subtitle.toLowerCase().includes(this.searchQuery) ||
-        ex.primaryMuscles.some(m => (MUSCLE_GROUPS[m]?.name || m).toLowerCase().includes(this.searchQuery));
+        ex.primaryMuscles.some(m => ((MUSCLE_GROUPS[m] && MUSCLE_GROUPS[m].name) || m).toLowerCase().includes(this.searchQuery));
       return matchesCategory && matchesSearch;
     });
 
@@ -196,7 +196,7 @@ class App {
 
     container.innerHTML = filtered.map(exercise => {
       const animHtml = ExerciseAnimationRenderer.render(exercise.animationType, { exerciseId: exercise.id, isPaused: false });
-      const primaryNames = exercise.primaryMuscles.map(m => MUSCLE_GROUPS[m]?.name || m).join(', ');
+      const primaryNames = exercise.primaryMuscles.map(m => (MUSCLE_GROUPS[m] && MUSCLE_GROUPS[m].name) || m).join(', ');
 
       return `
         <article class="exercise-card" data-exercise-id="${exercise.id}">

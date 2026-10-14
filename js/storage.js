@@ -110,7 +110,7 @@ export class StorageManager {
    */
   static getLastWeightForExercise(exerciseId) {
     const logs = this.getExerciseLogs();
-    return logs[exerciseId]?.lastWeight ?? 10;
+    return (logs[exerciseId] && logs[exerciseId].lastWeight !== undefined) ? logs[exerciseId].lastWeight : 10;
   }
 
   /**

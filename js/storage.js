@@ -114,6 +114,35 @@ export class StorageManager {
   }
 
   /**
+   * Guarda o actualiza parámetros de un ejercicio (peso, repeticiones, tiempo de descanso)
+   * para que permanezca el último cambio hasta que se vuelva a cambiar.
+   */
+  static saveExerciseParam(exerciseId, params = {}) {
+    try {
+      const logs = this.getExerciseLogs();
+      logs[exerciseId] = {
+        ...(logs[exerciseId] || {}),
+        ...params,
+        date: new Date().toISOString()
+      };
+      if (params.weight !== undefined) logs[exerciseId].lastWeight = params.weight;
+      if (params.reps !== undefined) logs[exerciseId].lastReps = params.reps;
+      if (params.restSeconds !== undefined) logs[exerciseId].restSeconds = params.restSeconds;
+      localStorage.setItem(STORAGE_KEYS.EXERCISE_LOGS, JSON.stringify(logs));
+    } catch (e) {
+      console.warn('Error guardando configuración de ejercicio', e);
+    }
+  }
+
+  /**
+   * Obtiene la configuración personalizada guardada para un ejercicio
+   */
+  static getExerciseConfig(exerciseId) {
+    const logs = this.getExerciseLogs();
+    return logs[exerciseId] || {};
+  }
+
+  /**
    * Obtiene rutinas personalizadas del usuario
    */
   static getCustomRoutines() {

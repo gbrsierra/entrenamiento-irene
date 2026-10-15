@@ -83,10 +83,50 @@ export class VoiceRepCounter {
     for (let i = 0; i < result.length; i++) {
       transcripts.push(result[i].transcript.trim().toLowerCase());
     }
+    const combined = transcripts.join(' ');
     this._showTranscript('"' + transcripts[0] + '"');
+
+    // Detectar comando "YA" para terminar la serie actual y pasar al descanso
+    if (this._isYaCommand(combined)) {
+      this._onYaDetected();
+      return;
+    }
+
     if (!isFinal) return;
-    const detectedNumber = this._extractNumber(transcripts.join(' '));
+    const detectedNumber = this._extractNumber(combined);
     if (detectedNumber !== null) this._onVoiceNumber(detectedNumber);
+  }
+
+  _isYaCommand(text) {
+    if (!text) return false;
+    const clean = text
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .trim();
+
+    const words = clean.split(/\s+/);
+    if (words.includes('ya') || words.includes('listo') || words.includes('hecho') || 
+        words.includes('terminado') || words.includes('termine') || words.includes('fin') || words.includes('completado')) {
+      return true;
+    }
+    if (clean.includes('ya esta') || clean.includes('ya termine') || clean.includes('ya ta') || clean.includes('ya fue')) {
+      return true;
+    }
+    return false;
+  }
+
+  _onYaDetected() {
+    if (!this.isListening || this._isTransitioning) return;
+    this._isTransitioning = true;
+    this._showTranscript('¡YA! Serie completada ✓');
+    if (this.targetReps > 0) {
+      this.currentCount = this.targetReps;
+    } else {
+      this.currentCount = Math.max(1, this.currentCount);
+    }
+    this._updateCountDisplay();
+    this._onTargetReached();
   }
 
   _extractNumber(text) {
@@ -101,7 +141,7 @@ export class VoiceRepCounter {
   }
 
   _onVoiceNumber(num) {
-    if (!this.isListening || this.currentCount >= this.targetReps) return;
+    if (!this.isListening || this._isTransitioning || this.currentCount >= this.targetReps) return;
     const expected = this.currentCount + 1;
     if (num === expected || (num > this.currentCount && num <= this.targetReps)) {
       this.currentCount = num;
@@ -115,17 +155,24 @@ export class VoiceRepCounter {
     this._stopListening();
     this._markComplete();
     this._showCompleteFlash();
-    setTimeout(() => { this.onSetComplete(); }, 600);
+    setTimeout(() => {
+      this._isTransitioning = false;
+      this.onSetComplete();
+    }, 550);
   }
 
   // ---- API publica ----
 
   startNewSet(targetReps, label) {
+    this._isTransitioning = false;
     this.targetReps = targetReps;
     this.currentCount = 0;
     this.setLabel = label || '';
     this._updateCountDisplay();
-    if (this._transcriptEl) this._showTranscript('Escuchando...');
+    if (this._transcriptEl) this._showTranscript('Escuchando... Di "YA" al terminar');
+    if (this.isEnabled && !this.isListening) {
+      this._startListening();
+    }
   }
 
   enable() {
@@ -137,6 +184,7 @@ export class VoiceRepCounter {
 
   disable() {
     this.isEnabled = false;
+    this._isTransitioning = false;
     this._stopListening();
     this._showPanel(false);
     if (this._micBtnEl) {
@@ -200,14 +248,14 @@ export class VoiceRepCounter {
     panel.className = 'voice-counter-panel';
     panel.id = 'voice-counter-panel';
     panel.innerHTML = `
-      <div class="voice-transcript-toast" id="voice-transcript-toast">Listo para escuchar</div>
+      <div class="voice-transcript-toast" id="voice-transcript-toast">Listo • Di "YA" al terminar</div>
       <div class="voice-count-bubble">
         <div class="voice-waveform" id="voice-waveform">
           <span></span><span></span><span></span><span></span><span></span>
         </div>
         <div class="voice-count-number" id="voice-count-number">0</div>
         <div class="voice-count-info">
-          <span class="voice-count-label">REPETICIONES</span>
+          <span class="voice-count-label">DI "YA" AL COMPLETAR</span>
           <span class="voice-count-target" id="voice-count-target">— / —</span>
           <div class="voice-reps-bar">
             <div class="voice-reps-fill" id="voice-reps-fill"></div>

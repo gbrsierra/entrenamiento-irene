@@ -694,6 +694,129 @@ export const EXERCISES = [
     ],
     tips: 'Mantén el torso erguido y una respiración profunda y constante durante los sprints.',
     mistakes: ['Detener el pedaleo completamente durante la recuperación', 'Exceder la resistencia hasta bloquear el movimiento']
+  },
+
+  // --- TREN INFERIOR / PIERNAS CON MANCUERNAS (DIA 2) ---
+  {
+    id: 'sentadillas-con-mancuernas',
+    name: 'Sentadillas con mancuernas',
+    subtitle: 'Fuerza integral de piernas, cuádriceps y glúteos',
+    category: 'piernas',
+    difficulty: 'Intermedio',
+    equipment: 'Mancuernas',
+    animationType: 'sentadillas-con-mancuernas',
+    primaryMuscles: ['quads'],
+    secondaryMuscles: ['glutes', 'calves', 'core'],
+    defaultSets: 4,
+    defaultReps: 12,
+    defaultRest: 60,
+    isTimer: false,
+    description: 'Ejercicio multiarticular esencial para desarrollar fuerza y masa muscular en cuádriceps, glúteos y estabilidad del core en casa.',
+    execution: [
+      'Ponte de pie con los pies a la anchura de hombros y sostén una mancuerna a cada lado o ambas al pecho.',
+      'Inicia la bajada flexionando caderas y rodillas manteniendo la espalda recta y el pecho erguido.',
+      'Desciende hasta que los muslos queden al menos paralelos al suelo.',
+      'Empuja con toda la planta del pie para volver de manera controlada a la posición inicial.'
+    ],
+    tips: 'Mantén las rodillas alineadas con la punta de los pies sin que colapsen hacia dentro.',
+    mistakes: ['Curvar la espalda lumbar', 'Despegar los talones del suelo']
+  },
+  {
+    id: 'zancadas-alternas-mancuernas',
+    name: 'Zancadas alternas con mancuernas',
+    subtitle: 'Trabajo unilateral de piernas, cuádriceps y glúteos',
+    category: 'piernas',
+    difficulty: 'Intermedio',
+    equipment: 'Mancuernas',
+    animationType: 'zancadas-alternas-mancuernas',
+    primaryMuscles: ['quads', 'glutes'],
+    secondaryMuscles: ['hamstrings', 'calves', 'core'],
+    defaultSets: 4,
+    defaultReps: 12,
+    defaultRest: 60,
+    isTimer: false,
+    description: 'Magnífico ejercicio unilateral para corregir desbalances de fuerza entre piernas, mejorar el equilibrio y tonificar glúteos.',
+    execution: [
+      'De pie con una mancuerna en cada mano colgando a los costados del cuerpo.',
+      'Da un paso amplio hacia adelante y desciende hasta que ambas rodillas formen un ángulo de 90 grados.',
+      'La rodilla trasera baja suavemente hacia el suelo sin llegar a impactarlo.',
+      'Empuja con el talón de la pierna delantera para regresar a la posición inicial y alterna con la otra pierna.'
+    ],
+    tips: 'Mantén el torso recto y la mirada al frente durante todo el recorrido.',
+    mistakes: ['Dar un paso demasiado corto', 'Inclinar el torso excesivamente hacia adelante']
+  },
+  {
+    id: 'puente-gluteos-mancuernas',
+    name: 'Puente de glúteos con mancuernas',
+    subtitle: 'Aislamiento y activación máxima de glúteos e isquios',
+    category: 'piernas',
+    difficulty: 'Intermedio',
+    equipment: 'Mancuerna + Esterilla',
+    animationType: 'puente-gluteos-mancuernas',
+    primaryMuscles: ['glutes'],
+    secondaryMuscles: ['hamstrings', 'lower_back', 'core'],
+    defaultSets: 4,
+    defaultReps: 15,
+    defaultRest: 60,
+    isTimer: false,
+    description: 'Uno de los ejercicios más efectivos y seguros para glúteos en el suelo sin necesidad de banco ni máquinas.',
+    execution: [
+      'Túmbate bocarriba sobre la esterilla con rodillas flexionadas y pies apoyados firmemente al ancho de caderas.',
+      'Coloca una mancuerna sobre la pelvis, sujetándola suavemente con ambas manos para mayor estabilidad.',
+      'Empuja con los talones elevando la cadera hasta que el cuerpo forme una línea recta desde hombros a rodillas.',
+      'Aprieta con fuerza los glúteos arriba durante 1 a 2 segundos y baja con control.'
+    ],
+    tips: 'La fuerza de empuje debe provenir de apretar los glúteos, sin sobrecargar la zona lumbar.',
+    mistakes: ['Empujar únicamente con la punta de los pies', 'Hiperextender la espalda baja al subir']
+  },
+  {
+    id: 'peso-muerto-rumano-mancuernas',
+    name: 'Peso muerto rumano con mancuernas',
+    subtitle: 'Cadena posterior: isquiotibiales y glúteos con bisagra de cadera',
+    category: 'piernas',
+    difficulty: 'Intermedio',
+    equipment: 'Mancuernas',
+    animationType: 'peso-muerto-rumano-mancuernas',
+    primaryMuscles: ['hamstrings', 'glutes'],
+    secondaryMuscles: ['lower_back', 'forearms'],
+    defaultSets: 4,
+    defaultReps: 12,
+    defaultRest: 60,
+    isTimer: false,
+    description: 'El movimiento estrella de bisagra de cadera para fortalecer la cadena posterior, isquiotibiales y glúteos con seguridad lumbar.',
+    execution: [
+      'De pie con pies a la anchura de caderas, sosteniendo las mancuernas delante de los muslos.',
+      'Con una ligera flexión en las rodillas, empuja la cadera hacia atrás inclinando el torso.',
+      'Baja las mancuernas pegadas a las piernas sintiendo el estiramiento profundo en la parte trasera de los muslos.',
+      'Al llegar a la altura de las espinillas, empuja las caderas hacia adelante contrayendo glúteos e isquios para volver.'
+    ],
+    tips: 'Piensa en llevar el glúteo hacia la pared trasera en lugar de agacharte.',
+    mistakes: ['Doblar las rodillas como en una sentadilla', 'Curvar la espalda lumbar al bajar']
+  },
+  {
+    id: 'elevacion-gemelos-mancuernas',
+    name: 'Elevación de gemelos con mancuernas',
+    subtitle: 'Fuerza, tono y definición de pantorrillas',
+    category: 'piernas',
+    difficulty: 'Principiante',
+    equipment: 'Mancuernas',
+    animationType: 'elevacion-gemelos-mancuernas',
+    primaryMuscles: ['calves'],
+    secondaryMuscles: ['forearms'],
+    defaultSets: 4,
+    defaultReps: 15,
+    defaultRest: 45,
+    isTimer: false,
+    description: 'Trabajo analítico de gemelos (gastrocnemio y sóleo) para mejorar la fuerza del tobillo y la definición de la pantorrilla.',
+    execution: [
+      'Ponte de pie sosteniendo una mancuerna en cada mano a los costados con pies al ancho de caderas.',
+      'Elévate sobre las puntas de los pies empujando fuertemente hacia arriba con los metatarsos.',
+      'Mantén la contracción máxima arriba durante 1 segundo completo.',
+      'Desciende despacio hasta apoyar suavemente los talones.'
+    ],
+    tips: 'Haz una pausa arriba en cada repetición para evitar el impulso del tendón de Aquiles.',
+    mistakes: ['Rebotar rápidamente', 'Flexionar las rodillas al subir']
   }
 ];
+
 

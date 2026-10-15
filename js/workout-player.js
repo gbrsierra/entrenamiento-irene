@@ -1,9 +1,9 @@
 // Reproductor interactivo de entrenamiento guiado con mancuernas
-import { EXERCISES, MUSCLE_GROUPS } from './exercises-data.js?v=8';
-import { MuscleMap } from './muscle-map.js?v=8';
-import { ExerciseAnimationRenderer } from './animations-render.js?v=8';
-import { StorageManager } from './storage.js?v=8';
-import { VoiceRepCounter } from './voice-rep-counter.js?v=8';
+import { EXERCISES, MUSCLE_GROUPS } from './exercises-data.js?v=9';
+import { MuscleMap } from './muscle-map.js?v=9';
+import { ExerciseAnimationRenderer } from './animations-render.js?v=9';
+import { StorageManager } from './storage.js?v=9';
+import { VoiceRepCounter } from './voice-rep-counter.js?v=9';
 
 
 class AudioFeedback {
@@ -120,9 +120,21 @@ export class WorkoutPlayer {
     // Inicializar matriz de series por ejercicio
     this.exerciseSetsData = routine.exercises.map(exItem => {
       const exDetail = EXERCISES.find(e => e.id === exItem.exerciseId) || {};
-      const lastWeight = StorageManager.getLastWeightForExercise(exItem.exerciseId);
+      const savedConfig = StorageManager.getExerciseConfig(exItem.exerciseId);
+
+      const lastWeight = (savedConfig.lastWeight !== undefined && savedConfig.lastWeight !== null)
+        ? savedConfig.lastWeight
+        : (savedConfig.weight !== undefined ? savedConfig.weight : StorageManager.getLastWeightForExercise(exItem.exerciseId));
+      
       const targetSets = exItem.sets || exDetail.defaultSets || 3;
-      const targetReps = exItem.reps || exDetail.defaultReps || 10;
+      const targetReps = (savedConfig.lastReps !== undefined && savedConfig.lastReps !== null)
+        ? savedConfig.lastReps
+        : (savedConfig.reps !== undefined ? savedConfig.reps : (exItem.reps || exDetail.defaultReps || 10));
+
+      const restSeconds = (savedConfig.restSeconds !== undefined && savedConfig.restSeconds !== null)
+        ? savedConfig.restSeconds
+        : (exItem.restSeconds || exDetail.defaultRest || 60);
+
       const isTimer = !!exDetail.isTimer;
 
       const sets = [];
@@ -138,7 +150,7 @@ export class WorkoutPlayer {
       return {
         exerciseId: exItem.exerciseId,
         exercise: exDetail,
-        restSeconds: exItem.restSeconds || exDetail.defaultRest || 60,
+        restSeconds: restSeconds,
         isTimer: isTimer,
         sets
       };
@@ -855,6 +867,34 @@ export class WorkoutPlayer {
         if (action === 'inc-reps') set.reps = Math.min(100, set.reps + 1);
         if (action === 'dec-reps') set.reps = Math.max(1, set.reps - 1);
 
+        // Persistir el cambio de peso o reps para este ejercicio
+        if (action === 'inc-weight' || action === 'dec-weight') {
+          StorageManager.saveExerciseParam(currentItem.exerciseId, { weight: set.weight, lastWeight: set.weight });
+          // Propagar el nuevo peso a las series posteriores no completadas de este ejercicio
+          currentItem.sets.slice(index + 1).forEach((nextSet, offset) => {
+            if (!nextSet.completed) {
+              nextSet.weight = set.weight;
+              const nextRow = this.container.querySelector(`.sets-row[data-set-index="${index + 1 + offset}"] .weight-input`);
+              if (nextRow) nextRow.value = set.weight;
+            }
+          });
+        }
+        if (action === 'inc-reps' || action === 'dec-reps') {
+          StorageManager.saveExerciseParam(currentItem.exerciseId, { reps: set.reps, lastReps: set.reps });
+          // Propagar reps a series posteriores no completadas
+          currentItem.sets.slice(index + 1).forEach((nextSet, offset) => {
+            if (!nextSet.completed) {
+              nextSet.reps = set.reps;
+              const nextRow = this.container.querySelector(`.sets-row[data-set-index="${index + 1 + offset}"] .reps-input`);
+              if (nextRow) nextRow.value = set.reps;
+            }
+          });
+          if (this.voiceCounter && index === this.currentSetIndex) {
+            this.voiceCounter.targetReps = set.reps;
+            this.voiceCounter._updateCountDisplay();
+          }
+        }
+
         // Actualizar visualmente el input de esa fila directamente sin recargar todo el DOM
         const row = btn.closest('.sets-row');
         if (row) {
@@ -880,8 +920,28 @@ export class WorkoutPlayer {
         if (!set) return;
         if (input.classList.contains('weight-input')) {
           set.weight = Math.max(0, parseFloat(input.value) || 0);
+          StorageManager.saveExerciseParam(currentItem.exerciseId, { weight: set.weight, lastWeight: set.weight });
+          currentItem.sets.slice(index + 1).forEach((nextSet, offset) => {
+            if (!nextSet.completed) {
+              nextSet.weight = set.weight;
+              const nextRow = this.container.querySelector(`.sets-row[data-set-index="${index + 1 + offset}"] .weight-input`);
+              if (nextRow) nextRow.value = set.weight;
+            }
+          });
         } else if (input.classList.contains('reps-input')) {
           set.reps = Math.max(1, parseInt(input.value, 10) || 1);
+          StorageManager.saveExerciseParam(currentItem.exerciseId, { reps: set.reps, lastReps: set.reps });
+          currentItem.sets.slice(index + 1).forEach((nextSet, offset) => {
+            if (!nextSet.completed) {
+              nextSet.reps = set.reps;
+              const nextRow = this.container.querySelector(`.sets-row[data-set-index="${index + 1 + offset}"] .reps-input`);
+              if (nextRow) nextRow.value = set.reps;
+            }
+          });
+          if (this.voiceCounter && index === this.currentSetIndex) {
+            this.voiceCounter.targetReps = set.reps;
+            this.voiceCounter._updateCountDisplay();
+          }
         }
         this._updateCurrentSetActionLabels();
       };
@@ -976,6 +1036,7 @@ export class WorkoutPlayer {
         const newRest = parseInt(restSelect.value, 10);
         if (newRest && currentItem) {
           currentItem.restSeconds = newRest;
+          StorageManager.saveExerciseParam(currentItem.exerciseId, { restSeconds: newRest });
         }
       };
     }
@@ -1001,6 +1062,12 @@ export class WorkoutPlayer {
     if (btnSkipRest) {
       btnSkipRest.onclick = () => {
         this.stopRestTimer();
+        const currentItem = this.exerciseSetsData[this.currentExerciseIndex];
+        if (this.currentSetIndex >= currentItem.sets.length) {
+          if (this.currentExerciseIndex < this.exerciseSetsData.length - 1) {
+            this.goToExercise(this.currentExerciseIndex + 1);
+          }
+        }
       };
     }
 
@@ -1045,6 +1112,7 @@ export class WorkoutPlayer {
           const currentMins = Math.max(1, Math.round((bikeSet.reps || 900) / 60));
           const newMins = Math.min(180, Math.max(1, currentMins + step));
           bikeSet.reps = newMins * 60;
+          StorageManager.saveExerciseParam(currentItem.exerciseId, { reps: bikeSet.reps });
           this.stopExerciseTimer();
           this.exerciseTimerSecondsRemaining = bikeSet.reps;
 
@@ -1071,6 +1139,7 @@ export class WorkoutPlayer {
           minsInput.value = val;
           if (bikeSet) {
             bikeSet.reps = val * 60;
+            StorageManager.saveExerciseParam(currentItem.exerciseId, { reps: bikeSet.reps });
             this.stopExerciseTimer();
             this.exerciseTimerSecondsRemaining = bikeSet.reps;
             const valEl = document.getElementById('bike-timer-val');
@@ -1092,6 +1161,7 @@ export class WorkoutPlayer {
           const mins = parseInt(btn.dataset.mins, 10);
           if (bikeSet && mins) {
             bikeSet.reps = mins * 60;
+            StorageManager.saveExerciseParam(currentItem.exerciseId, { reps: bikeSet.reps });
             this.stopExerciseTimer();
             this.exerciseTimerSecondsRemaining = bikeSet.reps;
             const minsInput = document.getElementById('bike-mins-input');

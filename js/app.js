@@ -1,10 +1,10 @@
 // Controlador principal de la aplicación IronUpper
-import { EXERCISES, MUSCLE_GROUPS } from './exercises-data.js?v=8';
-import { ROUTINES } from './routines-data.js?v=8';
-import { MuscleMap } from './muscle-map.js?v=8';
-import { ExerciseAnimationRenderer } from './animations-render.js?v=8';
-import { StorageManager } from './storage.js?v=8';
-import { WorkoutPlayer } from './workout-player.js?v=8';
+import { EXERCISES, MUSCLE_GROUPS } from './exercises-data.js?v=9';
+import { ROUTINES } from './routines-data.js?v=9';
+import { MuscleMap } from './muscle-map.js?v=9';
+import { ExerciseAnimationRenderer } from './animations-render.js?v=9';
+import { StorageManager } from './storage.js?v=9';
+import { WorkoutPlayer } from './workout-player.js?v=9';
 
 class App {
   constructor() {

@@ -39,7 +39,13 @@ export class ExerciseAnimationRenderer {
       'press-militar-sentado': 'press-militar-sentado',
       'curl-biceps-mancuernas': 'curl-biceps-mancuernas',
       'triceps-mancuerna': 'triceps-mancuerna',
-      'bicicleta-estatica-intervalos': 'bicicleta-estatica-intervalos'
+      'bicicleta-estatica-intervalos': 'bicicleta-estatica-intervalos',
+      'remo-dos-mancuernas': 'remo-dos-mancuernas',
+      'sentadillas-con-mancuernas': 'sentadillas-con-mancuernas',
+      'zancadas-alternas-mancuernas': 'zancadas-alternas-mancuernas',
+      'puente-gluteos-mancuernas': 'puente-gluteos-mancuernas',
+      'peso-muerto-rumano-mancuernas': 'peso-muerto-rumano-mancuernas',
+      'elevacion-gemelos-mancuernas': 'elevacion-gemelos-mancuernas'
     };
 
     const fileId = aliasMap[id] || id;

@@ -131,9 +131,14 @@ export class WorkoutPlayer {
         ? savedConfig.lastReps
         : (savedConfig.reps !== undefined ? savedConfig.reps : (exItem.reps || exDetail.defaultReps || 10));
 
-      const restSeconds = (savedConfig.restSeconds !== undefined && savedConfig.restSeconds !== null)
+      // El restSeconds siempre parte del valor definido en la rutina/ejercicio como fuente de verdad.
+      // Solo se usa el persistido si pertenece a la misma rutina (evita que el valor de otra rutina contamine).
+      const savedRest = (savedConfig.restSeconds !== undefined &&
+                         savedConfig.restSeconds !== null &&
+                         savedConfig._routineId === routine.id)
         ? savedConfig.restSeconds
-        : (exItem.restSeconds || exDetail.defaultRest || 60);
+        : null;
+      const restSeconds = savedRest !== null ? savedRest : (exItem.restSeconds || exDetail.defaultRest || 60);
 
       const isTimer = !!exDetail.isTimer;
 
@@ -1036,7 +1041,11 @@ export class WorkoutPlayer {
         const newRest = parseInt(restSelect.value, 10);
         if (newRest && currentItem) {
           currentItem.restSeconds = newRest;
-          StorageManager.saveExerciseParam(currentItem.exerciseId, { restSeconds: newRest });
+          // Guardar junto al routineId para que solo aplique a esta rutina
+          StorageManager.saveExerciseParam(currentItem.exerciseId, {
+            restSeconds: newRest,
+            _routineId: this.routine.id
+          });
         }
       };
     }

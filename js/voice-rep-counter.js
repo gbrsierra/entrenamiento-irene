@@ -59,7 +59,7 @@ export class VoiceRepCounter {
     this._recognition.lang = 'es-ES';
     this._recognition.continuous = true;
     this._recognition.interimResults = true;
-    this._recognition.maxAlternatives = 3;
+    this._recognition.maxAlternatives = 5;
 
     this._recognition.onresult = (event) => this._handleResult(event);
     this._recognition.onerror = (event) => {
@@ -79,6 +79,8 @@ export class VoiceRepCounter {
     const result = event.results[event.results.length - 1];
     if (!result) return;
     const isFinal = result.isFinal;
+
+    // Recoger TODAS las alternativas (maxAlternatives = 5)
     const transcripts = [];
     for (let i = 0; i < result.length; i++) {
       transcripts.push(result[i].transcript.trim().toLowerCase());
@@ -86,10 +88,13 @@ export class VoiceRepCounter {
     const combined = transcripts.join(' ');
     this._showTranscript('"' + transcripts[0] + '"');
 
-    // Detectar comando "YA" para terminar la serie actual y pasar al descanso
-    if (this._isYaCommand(combined)) {
-      this._onYaDetected();
-      return;
+    // Detectar "YA" en cualquier alternativa (interim o final)
+    // Se verifica en cada alternativa por separado para mayor fiabilidad
+    for (const t of transcripts) {
+      if (this._isYaCommand(t)) {
+        this._onYaDetected();
+        return;
+      }
     }
 
     if (!isFinal) return;
@@ -99,20 +104,39 @@ export class VoiceRepCounter {
 
   _isYaCommand(text) {
     if (!text) return false;
+    // Normalizar: minúsculas, quitar acentos, quitar puntuación
     const clean = text
       .toLowerCase()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9\s]/g, ' ')
       .trim();
 
+    // Palabras exactas que significan "he terminado la serie"
+    const triggerWords = ['ya', 'ja', 'yaa', 'ya ya', 'listo', 'hecho', 'terminado',
+      'termine', 'fin', 'completado', 'ready', 'done', 'vamos', 'venga', 'dale'];
+    
     const words = clean.split(/\s+/);
-    if (words.includes('ya') || words.includes('listo') || words.includes('hecho') || 
-        words.includes('terminado') || words.includes('termine') || words.includes('fin') || words.includes('completado')) {
+    for (const trigger of triggerWords) {
+      if (trigger.includes(' ')) {
+        if (clean.includes(trigger)) return true;
+      } else {
+        if (words.includes(trigger)) return true;
+      }
+    }
+
+    // Frases compuestas
+    if (clean.includes('ya esta') || clean.includes('ya termine') ||
+        clean.includes('ya ta') || clean.includes('ya fue') ||
+        clean.includes('ya listo') || clean.includes('ya acabe') ||
+        clean.includes('ya acabe') || clean.includes('ya acabo')) {
       return true;
     }
-    if (clean.includes('ya esta') || clean.includes('ya termine') || clean.includes('ya ta') || clean.includes('ya fue')) {
-      return true;
+
+    // Variante: solo "a" o "ga" que a veces transcribe el motor como "ya"
+    if (words.length === 1 && (words[0] === 'a' || words[0] === 'ga' || words[0] === 'ia')) {
+      return false; // demasiado ambiguo
     }
+
     return false;
   }
 
